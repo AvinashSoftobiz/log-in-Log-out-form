@@ -1,3 +1,5 @@
+
+var bcrypt = require('bcryptjs');
 const express = require("express"); 
 const path = require("path"); 
 const session = require("express-session"); 
@@ -18,6 +20,8 @@ const User = mongoose.model(
     password: { type: String, required: true } 
   }) 
 ); 
+
+
  
 const app = express(); 
 app.set("views", __dirname); 
@@ -55,6 +59,13 @@ passport.serializeUser(function(user, done) {
       done(err, user); 
     }); 
   });
+
+  // middleware
+app.use(function(req, res, next) { 
+    res.locals.currentUser = req.user; 
+    next(); 
+  }); 
+  
  
 
 // app.get("/", (req, res) => res.render("index")); 
@@ -65,15 +76,23 @@ app.get("/", (req, res) => {
 app.get("/sign-up", (req, res) => res.render("sign-up-form"));
 // sign up form so that we can add users to our database 
 app.post("/sign-up", (req, res, next) => { 
-    const user = new User({ 
-      username: req.body.username, 
-      password: req.body.password 
-    }).save(err => { 
-      if (err) {  
-        return next(err); 
-      } 
-      res.redirect("/"); 
-    }); 
+    bcrypt.hash(req.body.password, 10, (err, hashedPassword) => { 
+         if (err){
+            console.log("sopmmething wrong");
+         }
+        // otherwise, store hashedPassword in DB 
+        const user = new User({ 
+            username: req.body.username, 
+            password: hashedPassword
+          }).save(err => { 
+            if (err) {  
+              return next(err); 
+            } 
+            res.redirect("/"); 
+          }); 
+      }); 
+       
+ 
   }); 
 
 // log-in
@@ -96,3 +115,6 @@ app.get("/log-out", (req, res) => {
   
  
 app.listen(3000, () => console.log("app listening on port 3000!")); 
+
+
+
